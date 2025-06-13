@@ -11,8 +11,8 @@ Open `index.html` in any modern web browser. Tasks and groups are stored in `loc
 - Checking a standard task removes it from the list.
 
 ### Groups
-- Provide a group name, a start time and a duration (e.g. `5h` or `2d`) and click **Add Group**.
-- If the duration is exactly `1d` the header shows `daily`.
+- Provide a group name, a start time and a duration in days, hours and minutes and click **Add Group**.
+- If the duration is exactly `1` day the header shows `daily`.
 - Double click a task to edit it or press the **x** button to remove it.
 - When all tasks in a group are checked the group turns light green. Otherwise it is light yellow.
 - Checked tasks are automatically reset at the next period start time.
