@@ -11,16 +11,30 @@
 
   <section id="standard-section">
     <h2>Standard Tasks</h2>
-    <input type="text" id="new-task-text" placeholder="Add a standard task" />
-    <button id="add-task-btn">Add Task</button>
+    <div class="form-row">
+      <label for="new-task-text">New Task:</label>
+      <input type="text" id="new-task-text" placeholder="Add a standard task" />
+      <button id="add-task-btn">Add Task</button>
+    </div>
     <ul id="standard-list"></ul>
   </section>
 
   <section id="group-section">
     <h2>Groups</h2>
-    <input type="text" id="group-name" placeholder="Group name" />
-    <input type="time" id="group-start" />
-    <input type="text" id="group-duration" placeholder="Duration (e.g. 5h or 2d)" />
+    <div class="form-row">
+      <label for="group-name">Name:</label>
+      <input type="text" id="group-name" />
+    </div>
+    <div class="form-row">
+      <label for="group-start">Start time:</label>
+      <input type="time" id="group-start" />
+    </div>
+    <div class="form-row">
+      <label>Duration:</label>
+      <input type="number" id="group-duration-days" min="0" placeholder="Days" />
+      <input type="number" id="group-duration-hours" min="0" max="23" placeholder="Hours" />
+      <input type="number" id="group-duration-minutes" min="0" max="59" placeholder="Minutes" />
+    </div>
     <button id="add-group-btn">Add Group</button>
     <div id="groups"></div>
   </section>

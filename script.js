@@ -4,7 +4,9 @@ const newTaskText = document.getElementById('new-task-text');
 
 const groupNameInput = document.getElementById('group-name');
 const groupStartInput = document.getElementById('group-start');
-const groupDurationInput = document.getElementById('group-duration');
+const groupDurationDaysInput = document.getElementById('group-duration-days');
+const groupDurationHoursInput = document.getElementById('group-duration-hours');
+const groupDurationMinutesInput = document.getElementById('group-duration-minutes');
 const addGroupBtn = document.getElementById('add-group-btn');
 const groupsDiv = document.getElementById('groups');
 
@@ -18,26 +20,37 @@ function loadData() {
   const saved = localStorage.getItem('todo-data');
   if (saved) {
     data = JSON.parse(saved);
+    data.groups.forEach(g => {
+      if (g.duration && g.duration.value !== undefined) {
+        if (g.duration.unit === 'd') {
+          g.duration = { days: g.duration.value, hours: 0, minutes: 0 };
+        } else if (g.duration.unit === 'h') {
+          g.duration = { days: 0, hours: g.duration.value, minutes: 0 };
+        }
+      }
+    });
   }
 }
 
-function parseDuration(str) {
-  const match = str.match(/(\d+)([hd])/i);
-  if (!match) return null;
-  const value = parseInt(match[1], 10);
-  const unit = match[2].toLowerCase();
-  return { value, unit };
+function collectDuration() {
+  const days = parseInt(groupDurationDaysInput.value, 10) || 0;
+  const hours = parseInt(groupDurationHoursInput.value, 10) || 0;
+  const minutes = parseInt(groupDurationMinutesInput.value, 10) || 0;
+  return { days, hours, minutes };
 }
 
 function durationToMs(dur) {
-  if (dur.unit === 'h') return dur.value * 3600 * 1000;
-  if (dur.unit === 'd') return dur.value * 24 * 3600 * 1000;
-  return 0;
+  return ((dur.days * 24 + dur.hours) * 60 + dur.minutes) * 60 * 1000;
 }
 
 function formatDuration(dur) {
-  if (dur.unit === 'd' && dur.value === 1) return 'daily';
-  return dur.value + (dur.unit === 'h' ? 'h' : 'd');
+  if (dur.days === 1 && dur.hours === 0 && dur.minutes === 0) return 'daily';
+  const parts = [];
+  if (dur.days) parts.push(dur.days + 'd');
+  if (dur.hours) parts.push(dur.hours + 'h');
+  if (dur.minutes) parts.push(dur.minutes + 'm');
+  if (parts.length === 0) parts.push('0m');
+  return parts.join(' ');
 }
 
 function nextTime(startTime, duration) {
@@ -169,8 +182,8 @@ addTaskBtn.addEventListener('click', () => {
 addGroupBtn.addEventListener('click', () => {
   const name = groupNameInput.value.trim();
   const start = groupStartInput.value;
-  const duration = parseDuration(groupDurationInput.value.trim());
-  if (name && start && duration) {
+  const duration = collectDuration();
+  if (name && start && durationToMs(duration) > 0) {
     data.groups.push({
       name,
       start,
@@ -180,11 +193,13 @@ addGroupBtn.addEventListener('click', () => {
     });
     groupNameInput.value = '';
     groupStartInput.value = '';
-    groupDurationInput.value = '';
+    groupDurationDaysInput.value = '';
+    groupDurationHoursInput.value = '';
+    groupDurationMinutesInput.value = '';
     renderGroups();
     saveData();
   } else {
-    alert('Please provide name, start time and duration (e.g. 5h or 2d).');
+    alert('Please provide name, start time and a valid duration.');
   }
 });
 

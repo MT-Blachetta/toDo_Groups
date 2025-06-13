@@ -7,6 +7,19 @@ section {
   margin-bottom: 30px;
 }
 
+.form-row {
+  margin-bottom: 10px;
+}
+
+.form-row label {
+  display: inline-block;
+  width: 90px;
+}
+
+.form-row input {
+  margin-right: 5px;
+}
+
 .group-box {
   border: 1px solid #888;
   margin-top: 10px;
