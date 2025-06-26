@@ -39,6 +39,29 @@ section {
   padding-bottom: 3px;
 }
 
+li input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.task-text {
+  cursor: pointer;
+}
+
+.toggle {
+  cursor: pointer;
+  margin-right: 4px;
+  display: inline-block;
+  width: 1em;
+  text-align: center;
+  user-select: none; /* Prevents text selection on click */
+}
+
+.toggle-placeholder {
+  display: inline-block;
+  width: 1em;
+  margin-right: 4px;
+}
+
 ul {
   list-style: none;
   padding-left: 0;
@@ -46,4 +69,19 @@ ul {
 
 li {
   margin-bottom: 5px;
+}
+
+li.dragging {
+  opacity: 0.4;
+}
+
+li.drag-over {
+  border-top: 2px solid dodgerblue;
+}
+
+.edit-task-input {
+  font-size: inherit;
+  font-family: inherit;
+  border: 1px solid #999;
+  padding: 1px 2px;
 }
