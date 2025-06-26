@@ -9,6 +9,7 @@ const groupDurationHoursInput = document.getElementById('group-duration-hours');
 const groupDurationMinutesInput = document.getElementById('group-duration-minutes');
 const addGroupBtn = document.getElementById('add-group-btn');
 const groupsDiv = document.getElementById('groups');
+const clearDataBtn = document.getElementById('clear-data-btn'); // New: Clear Data Button
 
 let data = { standard: [], groups: [] };
 
@@ -450,6 +451,18 @@ function checkRenewal() {
   saveData();
   renderAll();
 }
+
+// New: Clear All Data Functionality
+clearDataBtn.addEventListener('click', () => {
+  if (confirm('Are you sure you want to clear ALL your To-Do data? This action cannot be undone.')) {
+    localStorage.removeItem('todo-data');
+    // If you were using cookies, you would clear them here as well.
+    // Example: document.cookie.split(";").forEach(function(c) { document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); });
+    data = { standard: [], groups: [] }; // Reset in-memory data
+    renderAll(); // Re-render with empty data
+    alert('All data has been cleared.');
+  }
+});
 
 loadData();
 renderAll();
