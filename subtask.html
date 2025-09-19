@@ -7,16 +7,17 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1 id="subtask-header"></h1>
-
-  <div class="form-row">
-    <input type="text" id="new-subtask-text" placeholder="New subtask text" style="margin-right: 10px;"/>
-    <button id="add-subtask-btn">Add Subtask</button>
+  <div id="app-container" class="subtask-page">
+    <section class="subtask-section">
+      <h1 id="subtask-header"></h1>
+      <div class="form-row stack-on-small subtask-form">
+        <input type="text" id="new-subtask-text" placeholder="New subtask text" aria-label="New subtask text" />
+        <button id="add-subtask-btn" class="secondary-button">Add Subtask</button>
+      </div>
+      <ul id="subtask-list" class="category-task-list"></ul>
+      <a href="index.html" class="back-link">← Back to main list</a>
+    </section>
   </div>
-
-  <ul id="subtask-list"></ul>
-
-  <a href="index.html">Back to main list</a>
 
   <script src="subtask.js"></script>
 </body>

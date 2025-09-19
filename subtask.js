@@ -16,11 +16,21 @@ function findTask(taskId, tasks) {
 
 // Finds a task by its ID across all data
 function findTaskById(data, taskId) {
-    let task = findTask(taskId, data.standard);
-    if (task) return task;
+    if (Array.isArray(data.standard)) {
+        const looksLikeCategories = data.standard.some(item => item && item.tasks !== undefined);
+        if (looksLikeCategories) {
+            for (const category of data.standard) {
+                const found = findTask(taskId, Array.isArray(category.tasks) ? category.tasks : []);
+                if (found) return found;
+            }
+        } else {
+            const found = findTask(taskId, data.standard);
+            if (found) return found;
+        }
+    }
     for (const group of data.groups) {
-        task = findTask(taskId, group.tasks);
-        if (task) return task;
+        const found = findTask(taskId, group.tasks);
+        if (found) return found;
     }
     return null;
 }
@@ -32,6 +42,7 @@ function renderSubtasks(parentTask, container) {
     }
     parentTask.subtasks.forEach(subtask => {
         const li = document.createElement('li');
+        li.className = 'task-item';
         const span = document.createElement('span');
         span.textContent = subtask.text;
         span.className = 'task-text';

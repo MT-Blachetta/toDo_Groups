@@ -1,6 +1,6 @@
-const standardList = document.getElementById('standard-list');
-const addTaskBtn = document.getElementById('add-task-btn');
-const newTaskText = document.getElementById('new-task-text');
+const categoryGrid = document.getElementById('category-grid');
+const addCategoryBtn = document.getElementById('add-category-btn');
+const newCategoryNameInput = document.getElementById('new-category-name');
 
 const groupNameInput = document.getElementById('group-name');
 const groupStartInput = document.getElementById('group-start');
@@ -35,6 +35,36 @@ function patchTasks(tasks) {
   });
 }
 
+function ensureStandardCategories() {
+  if (!Array.isArray(data.standard)) {
+    data.standard = [];
+    return;
+  }
+
+  const isLegacyStructure = data.standard.some(item => item && !('tasks' in item) && 'text' in item);
+  if (isLegacyStructure) {
+    const legacyTasks = data.standard.filter(item => item && 'text' in item);
+    data.standard = [{
+      id: generateId(),
+      name: 'General',
+      tasks: legacyTasks
+    }];
+  }
+
+  data.standard.forEach(category => {
+    if (!category.id) {
+      category.id = generateId();
+    }
+    if (!category.name) {
+      category.name = 'Category';
+    }
+    if (!Array.isArray(category.tasks)) {
+      category.tasks = [];
+    }
+    patchTasks(category.tasks);
+  });
+}
+
 function saveData() {
   localStorage.setItem('todo-data', JSON.stringify(data));
 }
@@ -43,19 +73,25 @@ function loadData() {
   const saved = localStorage.getItem('todo-data');
   if (saved) {
     data = JSON.parse(saved);
-    data.groups.forEach(g => {
-      if (g.duration && g.duration.value !== undefined) {
-        if (g.duration.unit === 'd') {
-          g.duration = { days: g.duration.value, hours: 0, minutes: 0 };
-        } else if (g.duration.unit === 'h') {
-          g.duration = { days: 0, hours: g.duration.value, minutes: 0 };
-        }
-      }
-    });
-    // Patch for tasks without id/subtasks for backwards compatibility
-    patchTasks(data.standard);
-    data.groups.forEach(g => patchTasks(g.tasks));
   }
+  ensureStandardCategories();
+  if (!Array.isArray(data.groups)) {
+    data.groups = [];
+  }
+  data.groups.forEach(g => {
+    if (g.duration && g.duration.value !== undefined) {
+      if (g.duration.unit === 'd') {
+        g.duration = { days: g.duration.value, hours: 0, minutes: 0 };
+      } else if (g.duration.unit === 'h') {
+        g.duration = { days: 0, hours: g.duration.value, minutes: 0 };
+      }
+    }
+    if (!Array.isArray(g.tasks)) {
+      g.tasks = [];
+    }
+    patchTasks(g.tasks);
+  });
+  saveData();
 }
 
 function collectDuration() {
@@ -105,10 +141,12 @@ function findTaskWithContext(taskId, tasks, parent = null) {
 }
 
 function findTaskById(taskId) {
-  let result = findTaskWithContext(taskId, data.standard);
-  if (result) return result;
+  for (const category of data.standard) {
+    const result = findTaskWithContext(taskId, category.tasks);
+    if (result) return result;
+  }
   for (const group of data.groups) {
-    result = findTaskWithContext(taskId, group.tasks);
+    const result = findTaskWithContext(taskId, group.tasks);
     if (result) return result;
   }
   return null;
@@ -238,6 +276,7 @@ function renderTaskTree(tasks, container, onTaskChange, onTaskDelete) {
   tasks.forEach(task => {
     const li = document.createElement('li');
     li.dataset.taskId = task.id;
+    li.classList.add('task-item');
     li.setAttribute('draggable', true);
 
     li.addEventListener('dragstart', handleDragStart);
@@ -288,7 +327,9 @@ function renderTaskTree(tasks, container, onTaskChange, onTaskDelete) {
 
     if (onTaskDelete) {
       const delBtn = document.createElement('button');
-      delBtn.textContent = 'x';
+      delBtn.textContent = '✕';
+      delBtn.classList.add('icon-button', 'destructive-button');
+      delBtn.setAttribute('aria-label', 'Delete task');
       delBtn.addEventListener('click', () => onTaskDelete(task.id));
       li.appendChild(delBtn);
     }
@@ -297,7 +338,7 @@ function renderTaskTree(tasks, container, onTaskChange, onTaskDelete) {
 
     if (task.isExpanded && task.subtasks && task.subtasks.length > 0) {
       const sublist = document.createElement('ul');
-      sublist.style.paddingLeft = '25px';
+      sublist.className = 'nested-task-list';
       li.appendChild(sublist);
       renderTaskTree(task.subtasks, sublist, onTaskChange, null);
     }
@@ -305,20 +346,102 @@ function renderTaskTree(tasks, container, onTaskChange, onTaskDelete) {
 }
 
 function renderStandard() {
-  standardList.innerHTML = '';
-  const onTaskChange = () => {
-    saveData();
-    renderAll();
-  };
-  const onTaskDelete = (taskId) => {
-    const context = findTaskById(taskId);
-    if (context) {
-      context.list.splice(context.index, 1);
+  categoryGrid.innerHTML = '';
+
+  if (data.standard.length === 0) {
+    const emptyState = document.createElement('div');
+    emptyState.className = 'empty-state';
+    emptyState.textContent = 'Create a category to start adding tasks.';
+    categoryGrid.appendChild(emptyState);
+    return;
+  }
+
+  data.standard.forEach((category, cidx) => {
+    const column = document.createElement('div');
+    column.className = 'category-column';
+    column.dataset.categoryId = category.id;
+
+    const header = document.createElement('div');
+    header.className = 'category-header';
+
+    const title = document.createElement('h3');
+    title.textContent = category.name;
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'category-delete-btn';
+    deleteBtn.classList.add('secondary-button', 'destructive-button');
+    deleteBtn.textContent = 'Remove';
+    deleteBtn.addEventListener('click', () => {
+      if (confirm(`Delete the category "${category.name}" and all of its tasks?`)) {
+        data.standard.splice(cidx, 1);
+        saveData();
+        renderAll();
+      }
+    });
+
+    header.appendChild(title);
+    header.appendChild(deleteBtn);
+    column.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'category-body';
+
+    const list = document.createElement('ul');
+    list.className = 'category-task-list';
+
+    const onTaskChange = () => {
       saveData();
       renderAll();
-    }
-  };
-  renderTaskTree(data.standard, standardList, onTaskChange, onTaskDelete);
+    };
+
+    const onTaskDelete = (taskId) => {
+      const context = findTaskById(taskId);
+      if (context) {
+        context.list.splice(context.index, 1);
+        saveData();
+        renderAll();
+      }
+    };
+
+    renderTaskTree(category.tasks, list, onTaskChange, onTaskDelete);
+
+    body.appendChild(list);
+
+    const addRow = document.createElement('div');
+    addRow.className = 'category-add-row stack-on-small';
+
+    const addInput = document.createElement('input');
+    addInput.type = 'text';
+    addInput.placeholder = `Add a task in ${category.name}`;
+
+    const addBtn = document.createElement('button');
+    addBtn.textContent = 'Add Task';
+    addBtn.classList.add('secondary-button');
+
+    const addTaskToCategory = () => {
+      const text = addInput.value.trim();
+      if (!text) return;
+      category.tasks.push({ id: generateId(), text, done: false, subtasks: [] });
+      addInput.value = '';
+      saveData();
+      renderAll();
+    };
+
+    addBtn.addEventListener('click', addTaskToCategory);
+    addInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        addTaskToCategory();
+      }
+    });
+
+    addRow.appendChild(addInput);
+    addRow.appendChild(addBtn);
+    body.appendChild(addRow);
+
+    column.appendChild(body);
+    categoryGrid.appendChild(column);
+  });
 }
 
 function allTasksDone(tasks) {
@@ -345,15 +468,15 @@ function renderGroups() {
     title.textContent = group.name;
 
     const headerRight = document.createElement('div');
-    headerRight.style.display = 'flex';
-    headerRight.style.alignItems = 'center';
+    headerRight.className = 'group-header-actions';
 
     const period = document.createElement('span');
+    period.className = 'group-period';
     period.textContent = formatDuration(group.duration);
-    period.style.marginRight = '10px';
 
     const deleteBtn = document.createElement('button');
     deleteBtn.textContent = 'Delete Group';
+    deleteBtn.classList.add('secondary-button', 'destructive-button');
     deleteBtn.addEventListener('click', () => {
       if (confirm(`Are you sure you want to delete the group "${group.name}"?`)) {
         data.groups.splice(gidx, 1);
@@ -385,34 +508,57 @@ function renderGroups() {
     };
     renderTaskTree(group.tasks, list, onTaskChange, onTaskDelete);
 
+    const addWrapper = document.createElement('div');
+    addWrapper.className = 'category-add-row stack-on-small';
+
     const addInput = document.createElement('input');
     addInput.type = 'text';
     addInput.placeholder = 'New task';
     const addBtn = document.createElement('button');
-    addBtn.textContent = 'Add';
-    addBtn.addEventListener('click', () => {
+    addBtn.textContent = 'Add Task';
+    addBtn.classList.add('secondary-button');
+    const addTaskToGroup = () => {
       if (addInput.value.trim()) {
         group.tasks.push({ id: generateId(), text: addInput.value.trim(), done: false, subtasks: [] });
         addInput.value = '';
         saveData();
         renderAll();
       }
+    };
+    addBtn.addEventListener('click', addTaskToGroup);
+    addInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        addTaskToGroup();
+      }
     });
+    addWrapper.appendChild(addInput);
+    addWrapper.appendChild(addBtn);
     box.appendChild(list);
-    box.appendChild(addInput);
-    box.appendChild(addBtn);
+    box.appendChild(addWrapper);
 
     updateGroupState(group, box);
     groupsDiv.appendChild(box);
   });
 }
 
-addTaskBtn.addEventListener('click', () => {
-  if (newTaskText.value.trim()) {
-    data.standard.push({ id: generateId(), text: newTaskText.value.trim(), done: false, subtasks: [] });
-    newTaskText.value = '';
-    saveData();
-    renderAll();
+const addCategory = () => {
+  const name = newCategoryNameInput.value.trim();
+  if (!name) {
+    newCategoryNameInput.focus();
+    return;
+  }
+  data.standard.push({ id: generateId(), name, tasks: [] });
+  newCategoryNameInput.value = '';
+  saveData();
+  renderAll();
+};
+
+addCategoryBtn.addEventListener('click', addCategory);
+newCategoryNameInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    addCategory();
   }
 });
 
